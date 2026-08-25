@@ -36,9 +36,9 @@ dependencies {
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)
     implementation(libs.material)
-    implementation(libs.ftpserver.core)
-    implementation(libs.slf4j.android)
-    implementation(libs.glide)
+    implementation(libs.ftpserver.core) //to embed full functional FTP capababilities
+    implementation(libs.slf4j.android) //connects SLF4J logging to Logcat system
+    implementation(libs.glide) //Glide - open source media management and image laoding framework
     annotationProcessor(libs.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)

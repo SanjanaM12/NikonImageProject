@@ -14,14 +14,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CameraFtpServer {
+    private static final String TAG = "CameraFTPServer";
     private FtpServer server;
+    private final onPhotoReceivedListener listener;
+
+    //interface to send file paths back to UI
+    public interface onPhotoReceivedListener {
+        void onPhotoReceived(File file);
+    }
+
+    //Server constructor with reference
+    public CameraFtpServer(onPhotoReceivedListener listener) {
+        this.listener = listener;
+    }
+
 
     //starts connection to the FTP server
     public void start(File storageDirectory, int port) throws FtpException {
         FtpServerFactory serverFactory = new FtpServerFactory();
         ListenerFactory factory = new ListenerFactory(); //takes care of network management
 
-        factory.setPort(2221);
+        factory.setPort(port);
+        serverFactory.addListener("default", factory.createListener());
 
         //Configures camera credentials to login
         BaseUser user = new BaseUser();

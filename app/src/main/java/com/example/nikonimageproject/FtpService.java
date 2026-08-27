@@ -25,7 +25,7 @@ public class FtpService extends Service {
         }
 
         //creates a new Server and starts it
-        ftpServer = new CameraFtpServer();
+        ftpServer = new CameraFtpServer((CameraFtpServer.OnPhotoReceivedListener) this);
         try {
             ftpServer.start(incomingDir, 2221);
         } catch (Exception e) {

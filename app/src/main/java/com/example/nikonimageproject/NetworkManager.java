@@ -57,4 +57,19 @@ public class NetworkManager {
             Log.e(TAG, "Failed to request network: " + e.getMessage(), e);
         }
     }
+
+    public void unbindFromWifi() {
+        if (connectivityManager != null) {
+            try {
+                if (networkCallback != null) {
+                    connectivityManager.unregisterNetworkCallback(networkCallback);
+                    networkCallback = null;
+                }
+                connectivityManager.bindProcessToNetwork(null);
+                Log.i(TAG, "Unregistered Wifi network callback and unbound process");
+            } catch (Exception e){
+                Log.e(TAG, "Error unbinding from Wifi" + e.getMessage(), e);
+            }
+        }
+    }
 }

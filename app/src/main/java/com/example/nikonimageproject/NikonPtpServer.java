@@ -22,6 +22,7 @@ public class NikonPtpServer {
 
     private ServerSocket serverSocket;
     private boolean isRunning = false;
+    private int connectionCounter = 1000;
 
     private final byte[] hostGuid = new byte[16];
 
@@ -58,16 +59,20 @@ public class NikonPtpServer {
 
     public void handleConnection(Socket socket){
         try {
+            //binary I/O streams
             DataInputStream in = new DataInputStream(socket.getInputStream());
             DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 
+            //runs until wifi disconnected or all files finish transferring
             while (isRunning && !socket.isClosed()) {
+                //reads 4 bytes to covert them to Java int
                 byte[] lenBuf = new byte[4];
                 in.readFully(lenBuf);
                 int length = ByteBuffer.wrap(lenBuf).order(ByteOrder.LITTLE_ENDIAN).getInt();
 
                 if (length < 0) break;
 
+                //reads 4 bytes to identify the packet type
                 byte[] typeBuf = new byte[4];
                 in.readFully(typeBuf);
                 int packetType = ByteBuffer.wrap(typeBuf).order(ByteOrder.LITTLE_ENDIAN).getInt();
@@ -77,6 +82,7 @@ public class NikonPtpServer {
 
                 Log.i(TAG, "Received Packet: Type=" + packetType + " | Length=" + length);
 
+                //route packet based on type
                 switch (packetType) {
                     case PTPIP_INIT_COMMAND_REQ:
                         break;
@@ -90,6 +96,26 @@ public class NikonPtpServer {
         } catch (IOException e ) {
             Log.w(TAG, "Camera socket disconnected: " + e.getMessage());
         }
+    }
+
+    private void handleInitCommand(DataOutputStream out, byte[] payload) throws IOException {
+        connectionCounter++;
+        String hostName = "AndroidReceiver\0";
+        byte[] nameBytes = hostName.getBytes("UTF-16LE");
+
+        int totalLen = 8 + 4 + 16 + nameBytes.length + 4; //header + connNum + GUID + name + version
+        ByteBuffer buffer = ByteBuffer.allocate(totalLen).order(ByteOrder.LITTLE_ENDIAN); //Allocates RAM and format
+        buffer.putInt(totalLen);
+        buffer.putInt(PTPIP_INIT_COMMAND_ACK);
+        buffer.putInt(connectionCounter);
+        buffer.put(hostGuid);
+        buffer.put(nameBytes);
+        buffer.putInt(0x00010000);
+
+        //Adds array to socket output stream and sends ti
+        out.write(buffer.array());
+        out.flush();
+        Log.i(TAG, "Sent Init_Command_Ack (Assigned Conn ID: " + connectionCounter +")");
     }
 
     public void stop(){

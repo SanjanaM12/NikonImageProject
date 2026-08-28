@@ -6,6 +6,7 @@ import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -35,6 +36,17 @@ public class NikonPtpServer {
         bb.putLong(uuid.getMostSignificantBits());
         bb.putLong(uuid.getLeastSignificantBits());
     }
+
+    public interface OnPhotoReceivedListener {
+        void onPhotoReceived(File file);
+    }
+
+    private OnPhotoReceivedListener listener;
+
+    public void setOnPhotoReceivedListener(OnPhotoReceivedListener listener){
+        this.listener = listener;
+    }
+
 
     public void start() {
         isRunning = true;

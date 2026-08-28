@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
             startService(startIntent);
 
             String ip = getDeviceIpAddress();
-            tvIpAddress.setText("Server Running\nIP:" + ip + "\nPort: 2221");
+            tvIpAddress.setText("Server Running\nIP:" + ip + "\nPort: 15740");
         });
 
         btnStopServer.setOnClickListener(v -> {

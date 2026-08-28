@@ -8,7 +8,6 @@ public class NetworkManager {
     private static final String TAG = "NetworkManager";
     private final Context context;
 
-
     public NetworkManager(Context context){
         this.context = context;
     }
@@ -18,6 +17,6 @@ public class NetworkManager {
     }
 
     public void unbindFromWifi() {
-        Log.i(TAG, "Hotspot routing released")
+        Log.i(TAG, "Hotspot routing released");
     }
 }

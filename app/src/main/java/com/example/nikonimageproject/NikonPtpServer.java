@@ -46,4 +46,13 @@ public class NikonPtpServer {
             }
         }).start(); //creates worker thread to manage specific client socket
     }
+
+    public void stop(){
+        isRunning = false;
+        try {
+            if (serverSocket != null) {
+                serverSocket.close();
+            }
+        } catch (IOException ignored) {}
+    }
 }

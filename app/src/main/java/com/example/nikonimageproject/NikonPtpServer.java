@@ -15,10 +15,12 @@ import java.util.UUID;
 
 public class NikonPtpServer {
     private static final String TAG = "NikonPtpServer";
-    public static final int PTP_PORT = 15470;
+    public static final int PTP_PORT = 15740;
 
     private static final int PTPIP_INIT_COMMAND_REQ = 1;
     private static final int PTPIP_INIT_COMMAND_ACK = 2;
+    private static final int PTPIP_INIT_EVENT_REQ = 3;
+    private static final int PTPIP_INIT_EVENT_ACK = 4;
 
     private ServerSocket serverSocket;
     private boolean isRunning = false;
@@ -70,7 +72,7 @@ public class NikonPtpServer {
                 in.readFully(lenBuf);
                 int length = ByteBuffer.wrap(lenBuf).order(ByteOrder.LITTLE_ENDIAN).getInt();
 
-                if (length < 0) break;
+                if (length < 8) break;
 
                 //reads 4 bytes to identify the packet type
                 byte[] typeBuf = new byte[4];
@@ -85,8 +87,10 @@ public class NikonPtpServer {
                 //route packet based on type
                 switch (packetType) {
                     case PTPIP_INIT_COMMAND_REQ:
+                        handleInitCommand(out, payload);
                         break;
-                    case PTPIP_INIT_COMMAND_ACK:
+                    case PTPIP_INIT_EVENT_REQ:
+                        handleInitEvent(out);
                         break;
                     default:
                         Log.i(TAG, "Received Data/Command packet (Type: " + packetType + ")");
@@ -116,6 +120,17 @@ public class NikonPtpServer {
         out.write(buffer.array());
         out.flush();
         Log.i(TAG, "Sent Init_Command_Ack (Assigned Conn ID: " + connectionCounter +")");
+    }
+
+    private void handleInitEvent(DataOutputStream out) throws IOException {
+        int totalLen = 8;
+        ByteBuffer buffer = ByteBuffer.allocate(totalLen).order(ByteOrder.LITTLE_ENDIAN);
+        buffer.putInt(totalLen);
+        buffer.putInt(PTPIP_INIT_EVENT_ACK);
+
+        out.write(buffer.array());
+        out.flush();
+        Log.i(TAG, "Sent Init_Event_Ack. Handshake complete");
     }
 
     public void stop(){

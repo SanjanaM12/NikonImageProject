@@ -11,6 +11,12 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Collections;
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
     private TextView tvIpAddress;
     private Button btnStartServer;
@@ -37,6 +43,9 @@ public class MainActivity extends AppCompatActivity {
         btnStartServer.setOnClickListener(v -> {
             Intent startIntent = new Intent(this, FtpService.class);
             startService(startIntent);
+
+            String ip = getDeviceIpAddress();
+            tvIpAddress.setText("Server Running\nIP:" + ip + "\nPort: 2221");
         });
 
         btnStopServer.setOnClickListener(v -> {
@@ -45,6 +54,38 @@ public class MainActivity extends AppCompatActivity {
             stopService(stopIntent);
             tvIpAddress.setText("Server: Stopped");
         });
+    }
 
+    private String getDeviceIpAddress() {
+        try {
+            //get all network interfaces
+            List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface intf : interfaces) {
+                //get all ip addresses of this interface
+                List<InetAddress> addresses = Collections.list(intf.getInetAddresses());
+                for (InetAddress addr : addresses) {
+                    //filter out loopback (home) and IPv6 addresses (select only Ipv4)
+                    if (!addr.isLoopbackAddress() && addr instanceof Inet4Address) {
+                        String host = addr.getHostAddress();
+                        if (host.startsWith("192.168.43.") || host.startsWith("192.168.49.")) {
+                            return host;
+                        }
+                    }
+
+                }
+            }
+
+            for (NetworkInterface intf : interfaces) {
+                List<InetAddress> addresses = Collections.list(intf.getInetAddresses());
+                for (InetAddress addr : addresses) {
+                    if (!addr.isLoopbackAddress() && addr instanceof Inet4Address) {
+                        return addr.getHostAddress();
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        //Defauly if no active wifi interface found
+        return "127.0.0.1";
     }
 }

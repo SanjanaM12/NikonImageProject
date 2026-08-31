@@ -22,6 +22,14 @@ public class NikonPtpServer {
     private static final int PTPIP_INIT_COMMAND_ACK = 2;
     private static final int PTPIP_INIT_EVENT_REQ = 3;
     private static final int PTPIP_INIT_EVENT_ACK = 4;
+    private static final int OPERATION_REQ = 6;
+    private static final int OPERATION_RESP = 7;
+    private static final int EVENT = 8;
+    private static final int START_DATA = 9;
+    private static final int DATA_PACKET = 10;
+    private static final int END_DATA = 12;
+    private static final int PTP_OP_OPEN_SESSION = 0x1002;
+    private static final int PTP_RESP_OK = 0x2001;
 
     private ServerSocket serverSocket;
     private boolean isRunning = false;

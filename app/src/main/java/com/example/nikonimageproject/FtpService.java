@@ -1,5 +1,6 @@
 package com.example.nikonimageproject;
 
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
@@ -7,6 +8,8 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.os.Build;
 import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
 
 import java.io.File;
 
@@ -34,8 +37,18 @@ public class FtpService extends Service implements NikonPtpServer.OnPhotoReceive
     @Override
     //entry point whenever a startService is called
     public int onStartCommand(Intent intent, int flags, int startID) {
-       ptpServer.start();
-       return START_STICKY; //allows for continuous background server
+        //Keeps service alive in foreground
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Nikon Wireless Link Active")
+                .setContentText("Listening for camera on port 15740...")
+                .setSmallIcon(android.R.drawable.stat_sys_upload)
+                .setOngoing(true)
+                .build();
+
+        startForeground(NOTIFICATION_ID, notification);
+
+        ptpServer.start();
+        return START_STICKY; //allows for continuous background server
     }
 
     @Override
@@ -53,6 +66,7 @@ public class FtpService extends Service implements NikonPtpServer.OnPhotoReceive
     }
 
     private void createNotificationChannel() {
+        //Registers a channel for system notifications (silent notification)
         NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
                 "NikonCameraReceiver", NotificationManager.IMPORTANCE_LOW);
         NotificationManager manager = getSystemService(NotificationManager.class);

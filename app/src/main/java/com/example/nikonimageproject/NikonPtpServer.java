@@ -12,6 +12,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.UUID;
 
 public class NikonPtpServer {
@@ -122,10 +124,10 @@ public class NikonPtpServer {
         }
     }
 
-    private void handleInitCommand(DataOutputStream out, byte[] payload) throws IOException {
+    private void handleInitCommand(DataOutputStream out) throws IOException {
         connectionCounter++;
         String hostName = "AndroidReceiver\0";
-        byte[] nameBytes = hostName.getBytes("UTF-16LE");
+        byte[] nameBytes = hostName.getBytes(StandardCharsets.UTF_16LE);
 
         int totalLen = 8 + 4 + 16 + nameBytes.length + 4; //header + connNum + GUID + name + version
         ByteBuffer buffer = ByteBuffer.allocate(totalLen).order(ByteOrder.LITTLE_ENDIAN); //Allocates RAM and format
@@ -151,6 +153,28 @@ public class NikonPtpServer {
         out.write(buffer.array());
         out.flush();
         Log.i(TAG, "Sent Init_Event_Ack. Handshake complete");
+    }
+
+    private void handleOperationRequest(DataOutputStream out, byte[] payload) throws IOException {
+        ByteBuffer buffer = ByteBuffer.wrap(payload).order(ByteOrder.LITTLE_ENDIAN);
+
+        int dataPhaseInfo = buffer.getInt();
+        short opCode = buffer.getShort();
+        int transactionId = buffer.getInt();
+
+        Log.i(TAG, String.format("Operation Request: OpCode=0x%04X, TransId=%d", opCode, transactionId));
+
+        if (opCode == PTP_OP_OPEN_SESSION) {
+            ByteBuffer response = ByteBuffer.allocate(14).order(ByteOrder.LITTLE_ENDIAN);
+            response.putInt(14);
+            response.putInt(OPERATION_RESP);
+            response.putShort((short)PTP_RESP_OK);
+            response.putInt(transactionId);
+
+            out.write(response.array());
+            out.flush();
+            Log.i(TAG, "Sent Operation Response: OpenSession OK");
+        }
     }
 
     public void stop(){

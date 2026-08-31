@@ -30,6 +30,7 @@ public class NikonPtpServer {
     private static final int END_DATA = 12;
     private static final int PTP_OP_OPEN_SESSION = 0x1002;
     private static final int PTP_RESP_OK = 0x2001;
+    private static final int PTP_OP_GET_OBJECT = 0X1009;
 
     private File currentTempFile;
     private FileOutputStream fileOutputStream;
@@ -37,8 +38,10 @@ public class NikonPtpServer {
     private ServerSocket serverSocket;
     private boolean isRunning = false;
     private int connectionCounter = 1000;
+    private int transactionIdCounter = 1;
 
     private final byte[] hostGuid = new byte[16];
+    private volatile DataOutputStream commandOutputStream;
 
     //Constructor that creates unique id for the Nikon GUID
     public NikonPtpServer(){
@@ -110,10 +113,14 @@ public class NikonPtpServer {
                 //route packet based on type
                 switch (packetType) {
                     case PTPIP_INIT_COMMAND_REQ:
+                        this.commandOutputStream = out;
                         handleInitCommand(out, payload);
                         break;
                     case PTPIP_INIT_EVENT_REQ:
                         handleInitEvent(out);
+                        break;
+                    case OPERATION_REQ:
+                        handleOperationRequest(out, payload);
                         break;
                     case START_DATA:
                         handleStartData(payload);
@@ -242,6 +249,22 @@ public class NikonPtpServer {
         if (listener != null && currentTempFile != null){
             listener.onPhotoReceived(currentTempFile);
         }
+    }
+
+    private void requestObject(DataOutputStream out, int objectHandle) throws IOException {
+        int transId = transactionIdCounter++;
+        ByteBuffer response = ByteBuffer.allocate(22).order(ByteOrder.LITTLE_ENDIAN);
+        response.putInt(22);
+        response.putInt(OPERATION_REQ);
+        response.putInt(1);
+        response.putShort((short)PTP_OP_GET_OBJECT);
+        response.putInt(transId);
+        response.putInt(objectHandle);
+
+        out.write(response.array());
+        out.flush();
+        Log.i(TAG, String.format("Sent GetObject Request for Handle 0x%08X (TransId: %d)", objectHandle, transId));
+
     }
     public void stop(){
         isRunning = false;

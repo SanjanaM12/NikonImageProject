@@ -1,8 +1,11 @@
 package com.example.nikonimageproject;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
+import android.os.Build;
 import android.util.Log;
 
 import java.io.File;
@@ -16,7 +19,10 @@ public class FtpService extends Service implements NikonPtpServer.OnPhotoReceive
     @Override
     public void onCreate(){
         super.onCreate();
+        createNotificationChannel();
+
         ptpServer = new NikonPtpServer();
+        ptpServer.setOnPhotoReceivedListener(this);
     }
 
     @Override
@@ -34,7 +40,7 @@ public class FtpService extends Service implements NikonPtpServer.OnPhotoReceive
 
     @Override
     public void onPhotoReceived(File file) {
-        Log.i(TAG, "New photo successfully received: " + file.getAbsolutePath());
+        Log.i(TAG, "New photo received: " + file.getAbsolutePath());
     }
 
     @Override
@@ -43,6 +49,15 @@ public class FtpService extends Service implements NikonPtpServer.OnPhotoReceive
         super.onDestroy(); //base Service cleanup
         if (ptpServer != null){
             ptpServer.stop();
+        }
+    }
+
+    private void createNotificationChannel() {
+        NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
+                "NikonCameraReceiver", NotificationManager.IMPORTANCE_LOW);
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager != null) {
+            manager.createNotificationChannel(channel);
         }
     }
 }

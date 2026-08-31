@@ -118,6 +118,9 @@ public class NikonPtpServer {
                     case START_DATA:
                         handleStartData(payload);
                         break;
+                    case DATA_PACKET:
+                        handleDataPacket(payload);
+                        break;
                     default:
                         Log.i(TAG, "Received Data/Command packet (Type: " + packetType + ")");
                         break;
@@ -191,6 +194,16 @@ public class NikonPtpServer {
         //Create a temp file in the app storage
         currentTempFile = File.createTempFile("nikon_", ".jpg");
         fileOutputStream = new FileOutputStream(currentTempFile);
+    }
+
+    private void handleDataPacket(byte[] payload) throws IOException {
+        if (fileOutputStream == null) return;
+
+        //JPEG data starting at index 4
+        int dataLength = payload.length - 4;
+        if (dataLength > 0) {
+            fileOutputStream.write(payload, 4, dataLength);
+        }
     }
     public void stop(){
         isRunning = false;

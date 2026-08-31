@@ -31,6 +31,7 @@ public class NikonPtpServer {
     private static final int PTP_OP_OPEN_SESSION = 0x1002;
     private static final int PTP_RESP_OK = 0x2001;
     private static final int PTP_OP_GET_OBJECT = 0X1009;
+    private static final int PTP_EVENT_OBJECT_ADDED = 0x4002;
 
     private File currentTempFile;
     private FileOutputStream fileOutputStream;
@@ -122,6 +123,9 @@ public class NikonPtpServer {
                     case OPERATION_REQ:
                         handleOperationRequest(out, payload);
                         break;
+                    case EVENT:
+                        handleEvent(payload);
+                        break;
                     case START_DATA:
                         handleStartData(payload);
                         break;
@@ -202,7 +206,7 @@ public class NikonPtpServer {
         Log.i(TAG, "Start Data Transfer: Size = " + totalDataSize + " bytes");
 
         //Create a temp file in the app storage
-        currentTempFile = File.createTempFile("nikon_", ".jpg");
+        currentTempFile = File.createTempFile("nikon_", ".jpg", null);
         fileOutputStream = new FileOutputStream(currentTempFile);
     }
 
@@ -251,6 +255,31 @@ public class NikonPtpServer {
         }
     }
 
+    private void handleEvent(byte[] payload) throws IOException {
+        if (payload.length < 6) return;
+
+        ByteBuffer buffer = ByteBuffer.wrap(payload).order(ByteOrder.LITTLE_ENDIAN);
+        short eventCode = buffer.getShort();
+        int transactionId = buffer.getInt();
+
+        int unsignedEventCode = eventCode & 0xFFFF;
+
+        //checks if camera sent event of new photo saved
+        if (unsignedEventCode == PTP_EVENT_OBJECT_ADDED) {
+            //extracts unique id of photo
+            int objectHandle = buffer.hasRemaining() ? buffer.getInt() : 0;
+            Log.i(TAG, String.format("Shutter Triggered. Object Added: 0x%08X", objectHandle));
+
+            //checks if connection is alive and valid photo id
+            if (commandOutputStream != null && objectHandle != 0){
+                try {
+                    requestObject(commandOutputStream, objectHandle); //requests camera to send image data to phone
+                } catch (IOException e) {
+                    Log.e(TAG, "Failed to send request: " + e.getMessage());
+                }
+            }
+        }
+    }
     private void requestObject(DataOutputStream out, int objectHandle) throws IOException {
         int transId = transactionIdCounter++;
         ByteBuffer response = ByteBuffer.allocate(22).order(ByteOrder.LITTLE_ENDIAN);
@@ -263,7 +292,7 @@ public class NikonPtpServer {
 
         out.write(response.array());
         out.flush();
-        Log.i(TAG, String.format("Sent GetObject Request for Handle 0x%08X (TransId: %d)", objectHandle, transId));
+        Log.i(TAG, String.format("Sent Get Request for Handle 0x%08X (TransId: %d)", objectHandle, transId));
 
     }
     public void stop(){

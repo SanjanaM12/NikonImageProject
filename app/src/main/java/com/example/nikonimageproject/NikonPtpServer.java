@@ -121,8 +121,11 @@ public class NikonPtpServer {
                     case DATA_PACKET:
                         handleDataPacket(payload);
                         break;
+                    case END_DATA:
+                        handleEndData(out, payload);
+                        break;
                     default:
-                        Log.i(TAG, "Received Data/Command packet (Type: " + packetType + ")");
+                        Log.i(TAG, "Received Data packet (Type: " + packetType + ")");
                         break;
                 }
             }
@@ -203,6 +206,41 @@ public class NikonPtpServer {
         int dataLength = payload.length - 4;
         if (dataLength > 0) {
             fileOutputStream.write(payload, 4, dataLength);
+        }
+    }
+
+    private void handleEndData(DataOutputStream out, byte[] payload) throws IOException {
+        ByteBuffer buffer = ByteBuffer.wrap(payload).order(ByteOrder.LITTLE_ENDIAN);
+        int transactionId = buffer.getInt();
+
+        //write any remaining tail data in packet
+        int remainingData = payload.length - 4;
+        if (remainingData >0 && fileOutputStream != null) {
+            fileOutputStream.write(payload,4, remainingData);
+        }
+
+        //flush and close file stream
+        if (fileOutputStream != null) {
+            fileOutputStream.flush();
+            fileOutputStream.close();
+            fileOutputStream = null;
+        }
+
+        Log.i(TAG, "Photo transfer complete: " + currentTempFile.getAbsolutePath());
+
+        //tell camera transfer succeeded
+        ByteBuffer response = ByteBuffer.allocate(14).order(ByteOrder.LITTLE_ENDIAN);
+        response.putInt(14);
+        response.putInt(OPERATION_RESP);
+        response.putShort((short)PTP_RESP_OK);
+        response.putInt(transactionId);
+
+        out.write(response.array());
+        out.flush();
+
+        //Alert listener to process photo
+        if (listener != null && currentTempFile != null){
+            listener.onPhotoReceived(currentTempFile);
         }
     }
     public void stop(){

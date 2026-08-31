@@ -2,18 +2,16 @@ package com.example.nikonimageproject;
 
 import android.util.Log;
 
-import java.io.DataInput;
 import java.io.DataInputStream;
-import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.UUID;
 
 public class NikonPtpServer {
@@ -32,6 +30,9 @@ public class NikonPtpServer {
     private static final int END_DATA = 12;
     private static final int PTP_OP_OPEN_SESSION = 0x1002;
     private static final int PTP_RESP_OK = 0x2001;
+
+    private File currentTempFile;
+    private FileOutputStream fileOutputStream;
 
     private ServerSocket serverSocket;
     private boolean isRunning = false;
@@ -114,6 +115,9 @@ public class NikonPtpServer {
                     case PTPIP_INIT_EVENT_REQ:
                         handleInitEvent(out);
                         break;
+                    case START_DATA:
+                        handleStartData(payload);
+                        break;
                     default:
                         Log.i(TAG, "Received Data/Command packet (Type: " + packetType + ")");
                         break;
@@ -124,7 +128,7 @@ public class NikonPtpServer {
         }
     }
 
-    private void handleInitCommand(DataOutputStream out) throws IOException {
+    private void handleInitCommand(DataOutputStream out, byte[] payload) throws IOException {
         connectionCounter++;
         String hostName = "AndroidReceiver\0";
         byte[] nameBytes = hostName.getBytes(StandardCharsets.UTF_16LE);
@@ -177,6 +181,17 @@ public class NikonPtpServer {
         }
     }
 
+    private void handleStartData(byte[] payload) throws IOException {
+        ByteBuffer buffer = ByteBuffer.wrap(payload).order(ByteOrder.LITTLE_ENDIAN);
+        int transactionId = buffer.getInt();
+        long totalDataSize = buffer.getLong();
+
+        Log.i(TAG, "Start Data Transfer: Size = " + totalDataSize + " bytes");
+
+        //Create a temp file in the app storage
+        currentTempFile = File.createTempFile("nikon_", ".jpg");
+        fileOutputStream = new FileOutputStream(currentTempFile);
+    }
     public void stop(){
         isRunning = false;
         try {

@@ -54,6 +54,10 @@ public class FtpService extends Service implements NikonPtpServer.OnPhotoReceive
     @Override
     public void onPhotoReceived(File file) {
         Log.i(TAG, "New photo received: " + file.getAbsolutePath());
+
+        Intent intent = new Intent("com.example.nikonimageproject.NEW_PHOTO");
+        intent.putExtra("image_path", file.getAbsolutePath());
+        sendBroadcast(intent);
     }
 
     @Override

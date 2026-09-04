@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.os.IBinder;
 import android.os.Build;
 import android.util.Log;
@@ -18,6 +19,7 @@ public class FtpService extends Service implements NikonPtpServer.OnPhotoReceive
     private static final String CHANNEL_ID = "nikon_ptp_channel";
     private static final int NOTIFICATION_ID = 101;
     private NikonPtpServer ptpServer;
+    private boolean isServerRunning = false;
 
     @Override
     public void onCreate(){
@@ -45,9 +47,18 @@ public class FtpService extends Service implements NikonPtpServer.OnPhotoReceive
                 .setOngoing(true)
                 .build();
 
-        startForeground(NOTIFICATION_ID, notification);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+        } else {
+            startForeground(NOTIFICATION_ID, notification);
+        }
 
-        ptpServer.start();
+        //Guard against duplicate binds on port 15740
+        if (!isServerRunning) {
+            ptpServer.start();
+            isServerRunning = true;
+            Log.i(TAG, "PTP Server started in foreground service.");
+        }
         return START_STICKY; //allows for continuous background server
     }
 

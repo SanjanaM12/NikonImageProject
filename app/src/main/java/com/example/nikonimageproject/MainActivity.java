@@ -3,6 +3,7 @@ package com.example.nikonimageproject;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
@@ -39,5 +40,21 @@ public class MainActivity extends AppCompatActivity {
         //Start background service
         Intent serviceIntent = new Intent(this, FtpService.class);
         startForegroundService(serviceIntent);
+    }
+
+    //runs when user navigates back to screen
+    @Override
+    protected void onResume(){
+        super.onResume();
+        IntentFilter filter = new IntentFilter("com.example.nikonimageproject.NEW_PHOTO");
+        registerReceiver(photoReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+
+    }
+
+    //runs when user navigates away from screen
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(photoReceiver);
     }
 }

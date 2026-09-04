@@ -4,8 +4,11 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
+import android.net.nsd.NsdManager;
+import android.net.nsd.NsdServiceInfo;
 import android.os.IBinder;
 import android.os.Build;
 import android.util.Log;
@@ -21,6 +24,10 @@ public class FtpService extends Service implements NikonPtpServer.OnPhotoReceive
     private NikonPtpServer ptpServer;
     private boolean isServerRunning = false;
 
+    //mDNS service registration for camera pairing
+    private NsdManager nsdManager;
+    private NsdManager.RegistrationListener registrationListener;
+
     @Override
     public void onCreate(){
         super.onCreate();
@@ -28,6 +35,8 @@ public class FtpService extends Service implements NikonPtpServer.OnPhotoReceive
 
         ptpServer = new NikonPtpServer();
         ptpServer.setOnPhotoReceivedListener(this);
+
+        nsdManager = (NsdManager) getSystemService((Context.NSD_SERVICE));
     }
 
     @Override
@@ -60,6 +69,40 @@ public class FtpService extends Service implements NikonPtpServer.OnPhotoReceive
             Log.i(TAG, "PTP Server started in foreground service.");
         }
         return START_STICKY; //allows for continuous background server
+    }
+
+    //Advertises app/device as a Nikon Wireless Transmitter Utility over mDNS
+    private void registerNsdService() {
+        NsdServiceInfo serviceInfo = new NsdServiceInfo();
+        serviceInfo.setServiceName("Nikon Wireless Receiver");
+        serviceInfo.setServiceType("_nikon-wtu._tcp.");
+        serviceInfo.setPort(15740);
+
+        registrationListener = new NsdManager.RegistrationListener() {
+            @Override
+            public void onServiceRegistered(NsdServiceInfo nsdServiceInfo) {
+                Log.i(TAG, "mDNS Service successfully registered: " + nsdServiceInfo.getServiceName());
+            }
+
+            @Override
+            public void onRegistrationFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                Log.i(TAG, "mDNS registration failed: " + errorCode);
+            }
+
+            @Override
+            public void onServiceUnregistered(NsdServiceInfo serviceInfo){
+                Log.i(TAG, "mDNS Service unregistered");
+            }
+
+            @Override
+            public void onUnregistrationFailed(NsdServiceInfo serviceInfo, int errorCode) {
+                Log.e(TAG, "mDNS unregistration failed: " + errorCode);
+            }
+        };
+
+        if (nsdManager != null) {
+            nsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, registrationListener);
+        }
     }
 
     @Override

@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -48,12 +47,20 @@ public class MainActivity extends AppCompatActivity {
         btnStopServer = findViewById(R.id.btnStopServer);
 
         btnStartServer.setOnClickListener(v -> startPtpService());
+        btnStopServer.setOnClickListener(v -> stopPtpService());
     }
 
     //start background service
     private void startPtpService() {
         Intent serviceIntent = new Intent(this, FtpService.class);
         startForegroundService(serviceIntent);
+        tvIpAddress.setText("Server: Started");
+    }
+
+    private void stopPtpService(){
+        Intent serviceIntent = new Intent(this, FtpService.class);
+        stopService(serviceIntent);
+        tvIpAddress.setText("Server: Stopped");
     }
 
     //runs when user navigates back to screen
@@ -62,7 +69,6 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         IntentFilter filter = new IntentFilter("com.example.nikonimageproject.NEW_PHOTO");
         registerReceiver(photoReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
-
     }
 
     //runs when user navigates away from screen

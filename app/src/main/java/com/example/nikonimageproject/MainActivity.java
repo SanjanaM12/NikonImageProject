@@ -6,7 +6,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.text.format.Formatter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -57,10 +59,20 @@ public class MainActivity extends AppCompatActivity {
         tvIpAddress.setText("Server: Started");
     }
 
+    //stop background service
     private void stopPtpService(){
         Intent serviceIntent = new Intent(this, FtpService.class);
         stopService(serviceIntent);
         tvIpAddress.setText("Server: Stopped");
+    }
+
+    private void displayLocalIp() {
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (wifiManager != null) {
+            int ipAddress = wifiManager.getConnectionInfo().getIpAddress();
+            String ipString = Formatter.formatIpAddress();
+            tvIpAddress.setText("IP: " + ipString + ":15740");
+        }
     }
 
     //runs when user navigates back to screen
